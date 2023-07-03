@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from users.models import User
 
@@ -15,11 +16,19 @@ class Like(models.Model):
 
 
 class Comment(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    post = models.ForeignKey(Post, on_delete=models.CASCADE)
-    text = models.TextField(max_length=300)
+    comment_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    text = models.TextField()
     publication_date = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    post = models.ForeignKey("Post", on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"Comment {self.comment_id} by {self.user.username} on Post {self.post.post_id}"
 
 
 class Tag(models.Model):
-    name = models.CharField(max_length=50, unique=True)
+    tag_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name

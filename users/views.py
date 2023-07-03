@@ -1,51 +1,58 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import authenticate
+from .forms import UserRegisterForm
+from django.contrib.auth import login as auth_login
+from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
-from .forms import ProfileForm
-from .models import User, Profile
-from django.contrib.auth.views import LoginView
+from feed.models import Post
+
+
+def base(request):
+    return render(request, "users/base.html")
 
 
 def register(request):
     if request.method == "POST":
-        form = UserCreationForm(request.POST)
+        form = UserRegisterForm(request.POST or None)
         if form.is_valid():
-            form.save()
+            user = form.save(commit=False)
+            password = form.cleaned_data.get("password")
+            user.set_password(password)
+            user.save()
+            new_user = authenticate(username=user.username, password=password)
+            auth_login(request, new_user)
             return redirect("login")
+
     else:
-        form = UserCreationForm()
-    return render(request, "users/register.html", {"form": form})
+        form = UserRegisterForm()
 
+    context = {"form": form}
 
-@login_required
-def profile(request):
-    user = request.user
-    try:
-        profile = Profile.objects.get(user=user)
-    except Profile.DoesNotExist:
-        profile = None
-    return render(request, "users/profile.html", {"profile": profile})
-
-
-@login_required
-def edit_profile(request):
-    user = request.user
-    try:
-        profile = Profile.objects.get(user=user)
-    except Profile.DoesNotExist:
-        profile = None
-
-    if request.method == "POST":
-        form = ProfileForm(request.POST, request.FILES, instance=profile)
-        if form.is_valid():
-            profile = form.save(commit=False)
-            profile.user = user
-            profile.save()
-            return redirect("profile")
-    else:
-        form = ProfileForm(instance=profile)
-    return render(request, "users/edit_profile.html", {"form": form})
+    return render(request, "users/register.html", context)
 
 
 def login(request):
-    return LoginView.as_view(template_name="users/login.html")(request)
+    if request.method == "POST":
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get("username")
+            password = form.cleaned_data.get("password")
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                auth_login(request, user)
+                return redirect("home")
+
+    else:
+        form = AuthenticationForm()
+
+    context = {"form": form}
+
+    return render(request, "users/login.html", context)
+
+
+@login_required
+def home(request):
+    post = Post.objects.all()
+
+    context = {"post": post}
+    return render(request, "home/home.html", context)
