@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>Post Detail</h1>
+  <img src="{{ post.image_or_video.url }}" alt="{{ post.caption }}" style="max-width: 500px;">
+  <p>Caption: {{ post.caption }}</p>
+  <p>Publication Date: {{ post.publication_date }}</p>
+  
+  <a href="{% url 'like_post' post.id %}">Like</a>
+  {% if user in post.likes.all %}
+    <a href="{% url 'unlike_post' post.id %}">Unlike</a>
+  {% endif %}
+  
+  <h2>Comments</h2>
+  {% for comment in post.comments.all %}
+    <p>{{ comment.user.username }}: {{ comment.text }}</p>
+  {% empty %}
+    <p>No comments yet.</p>
+  {% endfor %}
+
+  <a href="{% url 'add_comment' post.id %}">Add Comment</a>
+  <a href="{% url 'home' %}">Back to Home</a>
+{% endblock %}
